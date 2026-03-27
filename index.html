@@ -138,6 +138,16 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 .rph{height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted)}
 .spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--dark);border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* case card */
+.ccard{padding:10px 11px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.ccard:hover{background:var(--bg);border-color:var(--dark)}
+.ccard.sel{background:var(--dark);border-color:var(--dark);color:#fff}
+.ccard.sel .ct,.ccard.sel .cs{color:rgba(255,255,255,.55)}
+.cn2{font-size:12px;font-weight:700;line-height:1.3}
+.ct{font-size:10px;color:var(--muted);margin-top:1px}
+.cs{font-size:9px;color:var(--muted);margin-top:4px;display:flex;gap:4px;flex-wrap:wrap}
+.ctag{padding:2px 7px;border-radius:10px;background:var(--bg);border:1px solid var(--border);font-size:9px}
+.ccard.sel .ctag{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff}
 
 /* ══ SPACE DESIGN ══ */
 .sv{display:flex;flex:1;padding:14px;gap:12px;overflow:hidden}
@@ -554,17 +564,19 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 
 <!-- ▓▓ DIAGNOSIS ▓▓ -->
 <div id="t-diag" class="tab">
-  <div class="dv">
-    <div class="dform">
-      <div style="font-size:18px;font-weight:700;margin-bottom:2px">Patient Assessment</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:16px">AI-powered TCM pattern recognition</div>
+  <div class="dv" style="gap:12px">
+
+    <!-- COL 1: FORM -->
+    <div class="dform" style="width:300px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:2px">Patient Assessment</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:14px">AI-powered TCM pattern recognition</div>
       <label class="fl">Age &amp; Gender</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
         <input class="fi" type="number" id="dAge" value="45" placeholder="Age">
         <select class="fsel" id="dGen"><option>Female</option><option>Male</option></select>
       </div>
       <label class="fl">Chief Complaint</label>
-      <textarea class="fta" id="dComp">Fatigue, cold limbs, lower back pain, frequent urination at night, low libido, pale face</textarea>
+      <textarea class="fta" id="dComp" style="min-height:58px">Fatigue, cold limbs, lower back pain, frequent urination at night, low libido, pale face</textarea>
       <label class="fl">Symptoms</label>
       <div class="tags">
         <div class="tag on" onclick="this.classList.toggle('on')">Fatigue</div>
@@ -601,19 +613,35 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
       </select>
       <button class="runbtn" id="diagBtn" onclick="runDiag()">Run AI Diagnosis</button>
     </div>
-    <div class="dres">
+
+    <!-- COL 2: CASE DATABASE -->
+    <div style="width:270px;flex-shrink:0;background:var(--white);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:0;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:700">Case Database</div>
+        <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 10px;border-radius:20px;background:var(--bg);color:var(--muted)">10 Cases</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Click a case to load into result panel</div>
+      <div id="caseList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+
+    <!-- COL 3: RESULT -->
+    <div class="dres" style="min-width:0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-size:18px;font-weight:700">Diagnosis Result</div>
+        <div>
+          <div style="font-size:16px;font-weight:700">Diagnosis Result</div>
+          <div id="dResSubtitle" style="font-size:10px;color:var(--muted)">Select a case or run assessment</div>
+        </div>
         <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:5px 14px;border-radius:20px;background:var(--dark);color:var(--yellow)">Participatory Citizen Lab</div>
       </div>
       <div id="diagOut">
         <div class="rph">
           <div style="font-size:44px">☯</div>
           <div style="font-weight:600">Awaiting Assessment</div>
-          <div style="font-size:12px;color:var(--border)">Complete the form and run diagnosis</div>
+          <div style="font-size:12px;color:var(--border)">Select a sample case or run AI diagnosis</div>
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -909,7 +937,198 @@ function renR(){
 function gz(x,y){return x<226?(y<165?'A':'D'):x<452?(y<165?'B':'E'):(y<165?'C':'F');}
 function rmWP(id){wps=wps.filter(w=>w.id!==id);renR();}
 
-/* ── UNITS ── */
+/* ── CASE DATABASE ── */
+const DB=[
+  {
+    id:'TCM-001',name:'นางสาว สมหญิง ใจดี',age:45,gender:'Female',
+    pattern:'Kidney Yang Deficiency (腎陽虛)',organ:'Kidney',
+    complaint:'Fatigue, cold limbs, lower back pain, nocturia',
+    tongue:'Pale, white moist coat',pulse:'Deep, slow, weak',
+    formula:'右歸丸 You Gui Wan',points:'KD3, BL23, DU4, CV4, ST36, SP6',
+    tags:['Fatigue','Cold limbs','Back pain','Nocturia'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Kidney Yang Deficiency (腎陽虛)<br><b>Secondary:</b> Spleen Qi Deficiency (脾氣虛)</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>Kidney Yang is the root of all Yang in the body. Its deficiency fails to warm the body's interior, leading to cold extremities, lower back pain, and nocturia. Prolonged Kidney Yang deficiency affects Spleen function, causing fatigue and poor energy production.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Warm and tonify Kidney Yang, strengthen Spleen Qi, consolidate and astringe essence.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>右歸丸 You Gui Wan</b> (Restore the Right Pill) — Add Rou Cong Rong 15g, Ba Ji Tian 12g for stronger Yang tonification. Take twice daily with warm water.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>KD3</b> (Source of Kidney meridian) · <b>BL23</b> (Back-shu of Kidney) · <b>DU4</b> (Gate of Vitality, Yang root) · <b>CV4</b> (Gate of Original Qi) · <b>ST36</b> (Strengthen Spleen, tonify Qi) · <b>SP6</b> (Three Yin Meeting, tonify Yin & Yang) — Use moxa on DU4 and CV4.</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Eat warming foods: lamb, ginger, black sesame, walnuts, Chinese chives. ② Avoid cold raw foods, ice drinks, excessive salt. ③ Keep lower back warm, practice Tai Chi or Qi Gong 30 min daily, sleep before 11 PM.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-002',name:'นาย สมชาย รักสุข',age:38,gender:'Male',
+    pattern:'Liver Qi Stagnation (肝氣鬱結)',organ:'Liver',
+    complaint:'Chest tightness, irritability, sighing, hypochondriac pain',
+    tongue:'Dusky, thin white coat',pulse:'Wiry (Xian)',
+    formula:'柴胡疏肝散 Chai Hu Shu Gan San',points:'LV3, PC6, GB34, CV17, ST36, LI4',
+    tags:['Anxiety','Headache','Insomnia','Bloating'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Liver Qi Stagnation (肝氣鬱結)<br><b>Secondary:</b> Liver-Stomach Disharmony (肝胃不和)</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>The Liver is responsible for the smooth flow of Qi throughout the body. Emotional stress, frustration, and sedentary lifestyle cause Liver Qi to stagnate. Stagnant Qi produces hypochondriac distension, chest tightness, sighing, and irritability. When Liver Qi invades the Stomach, digestive symptoms such as bloating and nausea appear.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Soothe the Liver, regulate Qi, harmonize the Stomach, relieve emotional constraint.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>柴胡疏肝散 Chai Hu Shu Gan San</b> (Bupleurum Liver-Soothing Powder) — If insomnia prominent, add Suan Zao Ren 20g. If nausea, add Ban Xia 9g, Chen Pi 6g.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>LV3</b> (Great Rushing — primary Liver point) · <b>PC6</b> (Inner Gate — chest oppression, emotional) · <b>GB34</b> (Sinew Meeting point) · <b>CV17</b> (Sea of Qi — open chest) · <b>ST36</b> (Earth point — harmonize Middle Jiao) · <b>LI4</b> (Four Gates with LV3 — move Qi)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Eat Qi-moving foods: rose tea, hawthorn, citrus peel, jasmine tea. ② Limit alcohol and greasy fried foods. ③ Practice aerobic exercise 30 min/day, journaling or counseling for emotional processing.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-003',name:'นาง วิภา สว่างใจ',age:52,gender:'Female',
+    pattern:'Heart &amp; Spleen Deficiency (心脾兩虛)',organ:'Heart / Spleen',
+    complaint:'Insomnia, palpitations, poor memory, pale complexion, fatigue',
+    tongue:'Pale, thin white coat',pulse:'Thin, weak (Xi Ruo)',
+    formula:'歸脾湯 Gui Pi Tang',points:'HT7, SP6, BL15, BL20, CV12, ST36',
+    tags:['Insomnia','Palpitations','Fatigue','Poor appetite'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Heart and Spleen Deficiency (心脾兩虛)<br><b>Secondary:</b> Blood Deficiency (血虛)</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>Prolonged worry, overwork, and irregular eating injure both the Spleen and Heart. Spleen fails to generate Blood, depriving the Heart of nourishment. The Heart Spirit (Shen) becomes unsettled, causing insomnia, palpitations, and anxiety. Blood deficiency also manifests as pale complexion, fatigue, and poor memory.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Tonify Heart and Spleen, nourish Blood, calm the Spirit (Shen).</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>歸脾湯 Gui Pi Tang</b> (Restore the Spleen Decoction) — Add Suan Zao Ren 20g, Ye Jiao Teng 30g if severe insomnia. Bai Zi Ren 10g for excessive dreaming.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>HT7</b> (Spirit Gate — calm Heart Shen) · <b>SP6</b> (Three Yin — nourish Blood &amp; Yin) · <b>BL15</b> (Heart back-shu) · <b>BL20</b> (Spleen back-shu) · <b>CV12</b> (Strengthen Spleen &amp; Stomach) · <b>ST36</b> (Tonify source Qi and Blood)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Nourishing foods: red dates, longan, lotus seeds, pork liver, spinach, black sesame. ② Establish regular sleep schedule, avoid screen time after 9 PM. ③ Reduce worry, practice relaxation breathing before bed.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-004',name:'นาย ประสิทธิ์ มีโชค',age:60,gender:'Male',
+    pattern:'Liver Yang Rising (肝陽上亢)',organ:'Liver / Kidney',
+    complaint:'Hypertension, headache, dizziness, tinnitus, red face, irritability',
+    tongue:'Red, thin yellow coat',pulse:'Wiry, rapid (Xian Shu)',
+    formula:'天麻鉤藤飲 Tian Ma Gou Teng Yin',points:'LV3, GB20, LI11, KD3, SP6, GV20',
+    tags:['Headache','Dizziness','Tinnitus','Palpitations'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Liver Yang Rising (肝陽上亢)<br><b>Secondary:</b> Kidney Yin Deficiency (腎陰虛) — Root imbalance</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>Kidney Yin fails to anchor Liver Yang, allowing it to ascend and cause upper body symptoms: headache, red face, tinnitus, and hypertension. Chronic stress and aging accelerate this pattern. The Liver's dispersing function is disrupted, generating internal Wind.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Calm Liver, subdue Yang, nourish Kidney Yin to anchor the root, extinguish internal Wind.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>天麻鉤藤飲 Tian Ma Gou Teng Yin</b> (Gastrodia and Uncaria Drink) — If Kidney Yin severely deficient, combine with Liu Wei Di Huang Wan. Modify with Xia Ku Cao 15g for hypertension.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>LV3</b> (Subdue Liver Yang) · <b>GB20</b> (Wind Pool — headache, clear head) · <b>LI11</b> (Clear heat, lower BP) · <b>KD3</b> (Nourish Kidney Yin, root Yang) · <b>SP6</b> (Nourish Yin) · <b>GV20</b> (Regulate Yang at vertex — headache)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Calming Yin foods: chrysanthemum tea, celery, oysters, black fungus, mulberries. ② Strictly reduce sodium, spicy food, and alcohol. ③ Avoid anger and stress; daily 20-min meditation; monitor BP twice daily.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-005',name:'เด็กชาย ณัฐพล แก้วใส',age:9,gender:'Male',
+    pattern:'Lung Qi Deficiency &amp; Wind-Cold (肺氣虛 / 風寒)',organ:'Lung',
+    complaint:'Recurrent colds, cough with clear phlegm, shortness of breath, pale face, spontaneous sweating',
+    tongue:'Pale, white coat',pulse:'Floating, weak (Fu Ruo)',
+    formula:'玉屏風散 Yu Ping Feng San',points:'LU7, LU9, BL13, ST36, CV6, BL12',
+    tags:['Fatigue','Headache','Joint pain','Poor appetite'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Lung Qi Deficiency (肺氣虛)<br><b>Secondary:</b> Wei Qi Insufficiency — Vulnerable to External Wind-Cold invasion</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>The Lung controls Wei (Defensive) Qi that protects the body surface. Lung Qi deficiency weakens this protective layer, making the child vulnerable to frequent Wind-Cold invasions. Spontaneous sweating occurs when the exterior cannot be firmly held. Poor appetite reflects Spleen involvement from Lung-Spleen Qi deficiency.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Tonify Lung Qi, strengthen Wei Qi to consolidate the exterior, dispel Wind-Cold.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>玉屏風散 Yu Ping Feng San</b> (Jade Wind Screen Powder) — Huang Qi 12g, Bai Zhu 9g, Fang Feng 6g. Reduce dosage for child weight. For active cold: combine with Gui Zhi Tang.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>LU7</b> (Regulate Lung, exterior) · <b>LU9</b> (Source point — tonify Lung Qi) · <b>BL13</b> (Lung back-shu) · <b>ST36</b> (Strengthen Spleen, source of Qi) · <b>CV6</b> (Sea of Qi — tonify primary Qi) · <b>BL12</b> (Wind Gate — expel Wind)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Lung-nourishing foods: pear, lily bulb, white fungus, almonds, yam. ② Keep neck and back warm, avoid AC drafts. ③ Daily outdoor activity in morning sun; practice deep abdominal breathing exercises.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-006',name:'นาง ลัดดา บุญมา',age:41,gender:'Female',
+    pattern:'Yin Deficiency with Empty Heat (陰虛火旺)',organ:'Kidney / Heart',
+    complaint:'Night sweats, hot flashes, insomnia, dry mouth, five-center heat, anxiety',
+    tongue:'Red, little coat, cracks',pulse:'Thin, rapid (Xi Shu)',
+    formula:'知柏地黃丸 Zhi Bai Di Huang Wan',points:'KD3, KD6, HT6, SP6, PC6, KD7',
+    tags:['Night sweats','Insomnia','Anxiety','Dry mouth'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Kidney and Heart Yin Deficiency with Empty Heat (腎心陰虛火旺)<br><b>Secondary:</b> Heart-Kidney Disharmony (心腎不交)</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>Kidney Yin deficiency fails to cool and anchor Heart Fire, which rises upward causing insomnia, anxiety, and palpitations. Empty Heat (Xu Re) produced from Yin deficiency manifests as night sweats, five-centre heat, and hot flashes. This pattern is common in perimenopausal women.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Nourish Kidney and Heart Yin, clear Empty Heat, reconnect Heart and Kidney communication.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>知柏地黃丸 Zhi Bai Di Huang Wan</b> (Anemarrhena and Phellodendron Rehmannia Pill) — Add Nu Zhen Zi 15g, Han Lian Cao 12g for hormonal support. Bai He 15g for emotional instability.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>KD3</b> (Nourish Kidney Yin) · <b>KD6</b> (Nourish Yin, calm Shen) · <b>HT6</b> (Xi-cleft — stop night sweats) · <b>SP6</b> (Three Yin — nourish all three Yin organs) · <b>PC6</b> (Calm Heart, emotional) · <b>KD7</b> (Regulate sweating)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Yin-nourishing foods: black sesame, tofu, eggs, oysters, sea cucumber, fresh fruit. ② Avoid spicy, alcohol, coffee, and hot temperature environments. ③ Cool yoga or swimming over intense exercise; practice 4-7-8 breathing before sleep.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-007',name:'นาย วีรชัย ศรีสวัสดิ์',age:55,gender:'Male',
+    pattern:'Blood Stasis with Phlegm (血瘀痰阻)',organ:'Heart / Liver',
+    complaint:'Chest pain, breathlessness on exertion, purple lips, history of high cholesterol',
+    tongue:'Purple, dark spots, greasy coat',pulse:'Choppy, slippery (Se Hua)',
+    formula:'血府逐瘀湯 Xue Fu Zhu Yu Tang',points:'PC6, HT5, SP10, LV3, ST40, BL17',
+    tags:['Palpitations','Fatigue','Dizziness','Bloating'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Blood Stasis in the Chest (胸中血瘀)<br><b>Secondary:</b> Phlegm-Dampness Obstruction (痰濕阻絡)</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>Chronic Qi stagnation transformed into Blood Stasis obstructing the Heart meridian and vessels, producing chest pain and cyanotic lips. Concurrent Phlegm-Dampness (from Spleen deficiency) further thickens the blood and blocks collaterals. This combined pattern represents high cardiovascular risk in TCM.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Invigorate Blood, dissolve Stasis, resolve Phlegm, open the chest and unblock collaterals.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>血府逐瘀湯 Xue Fu Zhu Yu Tang</b> (Drive Out Stasis from the Mansion of Blood) — Add Dan Shen 20g, Shan Zha 15g for lipid management. Zhi Mu 12g if heat signs present.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>PC6</b> (Open chest, Heart protector) · <b>HT5</b> (Luo point — Heart collaterals) · <b>SP10</b> (Sea of Blood — invigorate Blood) · <b>LV3</b> (Move Qi &amp; Blood) · <b>ST40</b> (Resolve Phlegm-Dampness) · <b>BL17</b> (Influential point of Blood)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Blood-activating foods: hawthorn, turmeric, black fungus, onions, salmon. ② Eliminate smoking, drastically reduce saturated fats and processed food. ③ Cardiac rehabilitation walking 30 min/day; stress management is essential — chronic anger accelerates stasis.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-008',name:'นางสาว อรุณี ดวงดี',age:28,gender:'Female',
+    pattern:'Spleen &amp; Stomach Damp-Heat (脾胃濕熱)',organ:'Spleen / Stomach',
+    complaint:'Bloating, greasy stools, nausea, heavy limbs, poor appetite, facial acne',
+    tongue:'Red edges, thick yellow greasy coat',pulse:'Slippery, rapid (Hua Shu)',
+    formula:'三仁湯 San Ren Tang',points:'SP9, ST44, CV12, ST25, LI11, SP6',
+    tags:['Bloating','Poor appetite','Dizziness','Headache'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Spleen &amp; Stomach Damp-Heat (脾胃濕熱)<br><b>Secondary:</b> Liver Qi invading Stomach — aggravating factor</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>Overconsumption of sweet, rich, greasy, and spicy foods impairs Spleen's transforming and transporting functions. Accumulated Dampness transforms into Heat, creating the Damp-Heat pattern. This manifests as digestive complaints, heavy sensation, greasy stools, and skin outbreaks as the body attempts to expel excess Damp-Heat through the skin.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Clear Heat, resolve Dampness, strengthen Spleen's transformation function, harmonize Stomach.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>三仁湯 San Ren Tang</b> (Three-Nut Decoction) — Yi Yi Ren 30g (chief), Bai Kou Ren 9g, Xing Ren 12g. Add Huang Lian 6g if Heat prominent; Huo Xiang 10g for nausea.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>SP9</b> (Yin Mound Spring — drain Dampness) · <b>ST44</b> (Clear Stomach Heat) · <b>CV12</b> (Harmonize Stomach) · <b>ST25</b> (Large Intestine front-mu — regulate bowels) · <b>LI11</b> (Clear Heat from skin) · <b>SP6</b> (Transform Damp)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Heat-clearing Damp-draining foods: mung beans, barley, cucumber, bitter melon, lotus leaf tea. ② Strictly avoid deep-fried food, dairy, sugar, alcohol, and spicy food for minimum 6 weeks. ③ Reduce meal portions, eat slowly, 3 regular meals — no late-night eating.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-009',name:'นาย สุรชัย พลอยงาม',age:47,gender:'Male',
+    pattern:'Wind-Damp Bi Syndrome (風濕痹症)',organ:'Liver / Kidney / Joints',
+    complaint:'Joint pain and swelling, worse in cold-damp weather, stiffness, limited mobility',
+    tongue:'Pale purple, white greasy coat',pulse:'Wiry, slow (Xian Chi)',
+    formula:'獨活寄生湯 Du Huo Ji Sheng Tang',points:'GB34, BL40, SP9, ST36, BL23, Ashi points',
+    tags:['Joint pain','Fatigue','Cold limbs','Back pain'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Cold-Damp Bi Syndrome (寒濕痹症 Han Shi Bi)<br><b>Secondary:</b> Liver-Kidney Deficiency as root — Bi attacks the branch</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>External Wind-Cold-Damp pathogens invade the meridians and joints, obstructing the flow of Qi and Blood and causing pain, swelling, and stiffness. Cold dominates this pattern (pain worse in cold weather, relieved by warmth). Underlying Liver-Kidney deficiency weakens bones and sinews, creating vulnerability to external invasion.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Expel Wind-Cold-Damp, unblock meridians and collaterals, tonify Liver and Kidney, strengthen sinews and bones.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>獨活寄生湯 Du Huo Ji Sheng Tang</b> (Pubescent Angelica and Taxillus Decoction) — Add Chuan Wu 6g (processed) for severe Cold-Bi. Yi Yi Ren 30g for Damp-dominant presentation.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>GB34</b> (Influential Sinew point) · <b>BL40</b> (Command point for back &amp; lumbar) · <b>SP9</b> (Drain Dampness) · <b>ST36</b> (Tonify Qi, strengthen body) · <b>BL23</b> (Kidney back-shu — strengthen root) · <b>Ashi</b> (Local tender points — direct Qi to obstruction) — Apply moxa at affected joints.</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Warming anti-inflammatory foods: ginger, turmeric, black pepper, cherry, collagen-rich bone broth. ② Apply warm compress or moxa to joints 15 min daily. ③ Gentle Tai Chi or pool therapy to maintain mobility; avoid cold swimming and AC exposure.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  },
+  {
+    id:'TCM-010',name:'นางสาว ทิพย์วรรณ สุขใจ',age:33,gender:'Female',
+    pattern:'Qi &amp; Blood Deficiency (氣血兩虛)',organ:'Spleen / Heart / Liver',
+    complaint:'Menstrual irregularity, scanty periods, dizziness on standing, dry hair and skin, fatigue, blurred vision',
+    tongue:'Pale, thin, dry',pulse:'Thin, choppy (Xi Se)',
+    formula:'八珍湯 Ba Zhen Tang',points:'SP10, BL17, LV8, ST36, SP6, CV4',
+    tags:['Fatigue','Dizziness','Insomnia','Night sweats'],
+    html:`<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p><b>Primary:</b> Qi and Blood Deficiency (氣血兩虛)<br><b>Secondary:</b> Liver Blood Deficiency (肝血虛) — Blood not nourishing sinews and eyes</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>Deficiency of both Qi and Blood is often rooted in Spleen weakness failing to generate Qi and Blood from food. The Heart lacks Blood to nourish the Shen (Spirit), producing insomnia and anxiety. The Liver lacks Blood to nourish eyes and tendons, causing blurred vision and dry body tissues. Menstrual irregularity reflects insufficient Blood to fill the Chong (Penetrating) vessel.</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>Tonify both Qi and Blood simultaneously, strengthen Spleen as the source, nourish Liver Blood, regulate Chong vessel.</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p><b>八珍湯 Ba Zhen Tang</b> (Eight Treasure Decoction — Si Jun Zi + Si Wu Tang) — Add E Jiao 9g (dissolved) for Blood nourishment. Yi Mu Cao 15g to regulate menstruation. Take throughout the month, increase dosage post-period.</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p><b>SP10</b> (Invigorate and nourish Blood) · <b>BL17</b> (Influential Blood point) · <b>LV8</b> (Nourish Liver Blood) · <b>ST36</b> (Spleen/Stomach — generate Qi &amp; Blood) · <b>SP6</b> (Three Yin — regulate menstruation) · <b>CV4</b> (Nourish Original Qi, strengthen Chong)</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>① Blood-building foods: beef liver, spinach, red dates, goji berries, pomegranate, dark chocolate (>70%). ② Take E Jiao (gelatin) in warm rice wine weekly. ③ Avoid overwork and excessive exercise; adequate sleep 7-8 hours; eat warm cooked meals — avoid raw salads.</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`
+  }
+];
+
+const ORGAN_COLOR={
+  'Kidney':'#3A7AC8','Liver':'#2A8B66','Heart':'#C84040',
+  'Spleen':'#C8A55A','Lung':'#7B5EA7','Heart / Spleen':'#C04080',
+  'Kidney / Heart':'#8A4AC8','Heart / Liver':'#C84060',
+  'Spleen / Stomach':'#A07830','Liver / Kidney / Joints':'#4A8A5A',
+  'Spleen / Heart / Liver':'#C87030'
+};
+
+function buildCaseList(){
+  const el=document.getElementById('caseList');
+  el.innerHTML=DB.map((c,i)=>`
+    <div class="ccard" onclick="loadCase(${i})" id="cc-${i}">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${ORGAN_COLOR[c.organ]||'#888'};flex-shrink:0"></div>
+        <div class="cn2">${c.name}</div>
+        <div style="margin-left:auto;font-size:9px;font-weight:600;opacity:.45">${c.id}</div>
+      </div>
+      <div class="ct">${c.age}y · ${c.gender} · ${c.organ}</div>
+      <div class="ct" style="margin-top:2px;font-style:italic">${c.pattern}</div>
+      <div class="cs">${c.tags.slice(0,3).map(t=>`<span class="ctag">${t}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+function loadCase(i){
+  document.querySelectorAll('.ccard').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('cc-'+i).classList.add('sel');
+  const c=DB[i];
+  document.getElementById('dResSubtitle').textContent=`${c.id} · ${c.name} · ${c.age}y ${c.gender}`;
+  document.getElementById('diagOut').innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="padding:5px 13px;border-radius:20px;background:${ORGAN_COLOR[c.organ]||'#888'}22;border:1px solid ${ORGAN_COLOR[c.organ]||'#888'};font-size:11px;font-weight:600;color:${ORGAN_COLOR[c.organ]||'#888'}">${c.organ}</div>
+      <div style="padding:5px 13px;border-radius:20px;background:var(--bg);border:1px solid var(--border);font-size:11px;font-weight:500;color:var(--muted)">Tongue: ${c.tongue}</div>
+      <div style="padding:5px 13px;border-radius:20px;background:var(--bg);border:1px solid var(--border);font-size:11px;font-weight:500;color:var(--muted)">Pulse: ${c.pulse}</div>
+    </div>
+    ${c.html}`;
+}
+
+buildCaseList();
 const UNITS=[
   {id:'VA-01',name:'Clinic Van A',ico:'🚐',st:'active',zone:'Zone A',staff:6,pts:12,spec:'Full TCM'},
   {id:'MB-02',name:'Mobile Unit B',ico:'🚑',st:'route',zone:'Zone B',staff:4,pts:0,spec:'Acupuncture'},
