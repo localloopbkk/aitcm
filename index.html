@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI TCM — Hospital Mobility</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#EDEAE3;--surface:#F7F5F0;--white:#FAFAF8;
+  --dark:#1A1916;--yellow:#E2F441;--muted:#9A9890;
+  --border:#DDDAD2;--jade:#2A8B66;--red:#C84040;--blue:#3A7AC8;
+  --sh:0 2px 12px rgba(0,0,0,.07);--shl:0 8px 28px rgba(0,0,0,.12);
+}
+html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--dark);overflow:hidden}
+.app{height:100vh;display:flex;flex-direction:column}
+
+/* ── TOP BAR ── */
+.topbar{height:56px;display:flex;align-items:center;padding:0 22px;gap:14px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.avs{display:flex}
+.av{width:33px;height:33px;border-radius:50%;border:2.5px solid var(--bg);margin-left:-9px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:transform .15s;flex-shrink:0}
+.av:first-child{margin-left:0}
+.av:hover{transform:scale(1.12);z-index:3}
+.av-add{background:var(--dark);color:#fff;font-size:18px;font-weight:300}
+.tab-nav{display:flex;gap:3px;padding:4px;background:var(--border);border-radius:50px;margin:0 auto}
+.tnb{padding:7px 18px;border-radius:50px;border:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);background:transparent;transition:all .18s;white-space:nowrap}
+.tnb.active{background:var(--dark);color:#fff}
+.search{display:flex;align-items:center;gap:7px;padding:7px 16px;border:1px solid var(--border);border-radius:50px;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap;background:var(--white);transition:border-color .18s}
+.search:hover{border-color:var(--dark)}
+
+/* ── TAB SYSTEM ── */
+.tab{display:none;flex:1;flex-direction:column;overflow:hidden}
+.tab.on{display:flex}
+
+/* ══ OVERVIEW ══ */
+.ov{display:flex;flex:1;overflow:hidden}
+
+/* LEFT – body */
+.body-col{width:270px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.body-wrap{position:relative;width:190px;flex-shrink:0}
+
+/* badge circles */
+.bdg{position:absolute;border-radius:50%;border:2px solid var(--dark);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:pointer;z-index:5;transition:transform .18s}
+.bdg:hover{transform:scale(1.15)}
+.bdg-y{background:var(--yellow);color:var(--dark);width:28px;height:28px;font-size:12px}
+.bdg-w{background:var(--white);color:var(--dark);width:23px;height:23px}
+
+/* CENTER-LEFT – condition list */
+.cond-col{width:215px;flex-shrink:0;padding:14px 6px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.cond-col::-webkit-scrollbar{width:0}
+.csec{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 10px 5px}
+.ci{padding:9px 11px;border-radius:11px;cursor:pointer;transition:background .14s;display:flex;align-items:flex-start;gap:8px}
+.ci:hover{background:rgba(0,0,0,.04)}
+.ci.on{background:var(--white);box-shadow:var(--sh)}
+.cdot{width:9px;height:9px;border-radius:50%;background:var(--border);border:1.5px solid var(--muted);flex-shrink:0;margin-top:4px;transition:all .15s}
+.ci.on .cdot{background:var(--yellow);border-color:var(--dark)}
+.cn{font-size:12px;font-weight:500;line-height:1.3}
+.cs{font-size:10px;color:var(--muted)}
+.cexp{background:var(--dark);border-radius:8px;padding:7px 10px;margin-top:7px;display:flex;align-items:center;gap:8px}
+
+/* CENTER-RIGHT – floating cards */
+.cards-col{flex:1;position:relative;overflow:hidden}
+.card-scene{position:absolute;inset:10px 14px 10px 6px}
+.conn-svg{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.fc{position:absolute;border-radius:16px;overflow:hidden;box-shadow:var(--sh);transition:box-shadow .18s,transform .18s;cursor:default}
+.fc:hover{box-shadow:var(--shl);transform:translateY(-2px)}
+.fc-d{background:var(--dark);color:#fff}
+.fc-l{background:var(--white);color:var(--dark)}
+.fcp{padding:14px 17px}
+.fclbl{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;opacity:.4;margin-bottom:2px}
+.fctit{font-size:14px;font-weight:700;line-height:1.2}
+.fcdt{font-size:9px;opacity:.35;margin-top:5px}
+.big{font-size:26px;font-weight:800;line-height:1;margin:6px 0 2px}
+.bigs{font-size:11px;opacity:.45;font-weight:400}
+
+/* ── TIMELINE ── */
+.tl{height:48px;border-top:1px solid var(--border);background:var(--bg);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0}
+.tls{display:flex;align-items:center;gap:4px;flex:1;overflow-x:auto}
+.tls::-webkit-scrollbar{height:0}
+.tly{font-size:9px;color:var(--muted);letter-spacing:.5px;flex-shrink:0;padding:0 5px}
+.tld{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0;cursor:pointer;transition:all .14s}
+.tld:hover,.tld.hi{background:var(--dark);transform:scale(1.3)}
+.tld.yel{background:var(--yellow);border:2px solid var(--dark);width:11px;height:11px}
+.tlb{width:29px;height:29px;border-radius:50%;background:var(--dark);color:#fff;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* ── BOTTOM PANELS ── */
+.bots{height:150px;display:flex;border-top:1px solid var(--border);flex-shrink:0}
+.bp{flex:1;padding:12px 17px;border-right:1px solid var(--border);overflow:hidden}
+.bp:last-child{border-right:none}
+.bph{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.bpt{font-size:14px;font-weight:700}
+.bic{width:25px;height:25px;border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;flex-shrink:0}
+.bpr{display:flex;gap:10px;overflow-x:auto}
+.bpr::-webkit-scrollbar{height:0}
+.bpi{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.bpio{width:31px;height:31px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.bpio.dk{background:var(--dark)}
+.bpn{font-size:12px;font-weight:600;line-height:1.3}
+.bps{font-size:10px;color:var(--muted)}
+/* visits chart */
+.vch{display:flex;gap:6px;align-items:flex-end;height:90px}
+.vbar{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
+.vb{width:48px;border-radius:6px 6px 0 0;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;transition:opacity .14s}
+.vb:hover{opacity:.75}
+.vbl{font-size:9px;font-weight:600}
+.vdt{font-size:8px;color:var(--muted)}
+/* labs dots */
+.labl{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.labds{display:flex;gap:3px}
+.lad{width:10px;height:10px;border-radius:50%;background:var(--border)}
+.lad.f{background:var(--dark)}
+.lad.y{background:var(--yellow);border:1.5px solid var(--dark)}
+.divl{border:none;border-top:1px solid var(--border);margin:8px 0}
+
+/* ══ DIAGNOSIS ══ */
+.dv{display:flex;flex:1;padding:18px;gap:16px;overflow:hidden}
+.dform{width:350px;flex-shrink:0;background:var(--white);border-radius:16px;padding:20px;overflow-y:auto;display:flex;flex-direction:column}
+.dform::-webkit-scrollbar{width:0}
+.dres{flex:1;background:var(--white);border-radius:16px;padding:20px;overflow-y:auto}
+.dres::-webkit-scrollbar{width:3px}
+.fl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:block}
+.fi,.fsel,.fta{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;padding:8px 12px;color:var(--dark);outline:none;transition:border-color .18s;margin-bottom:11px}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--dark)}
+.fta{min-height:70px;resize:vertical}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px}
+.tag{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border);cursor:pointer;color:var(--muted);transition:all .13s}
+.tag.on{background:var(--dark);border-color:var(--dark);color:#fff}
+.runbtn{width:100%;padding:11px;background:var(--dark);color:#fff;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.3px;margin-top:4px;transition:background .18s}
+.runbtn:hover{background:#2A2A22}
+.runbtn:disabled{opacity:.5;cursor:not-allowed}
+.rc{background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--dark)}
+.rc.y{border-left-color:var(--yellow)}
+.rc.g{border-left-color:var(--jade)}
+.rc.r{border-left-color:var(--red)}
+.rc h4{font-size:13px;font-weight:700;margin-bottom:3px}
+.rc p{font-size:12px;line-height:1.7;color:#555}
+.rph{height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted)}
+.spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--dark);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ══ SPACE DESIGN ══ */
+.sv{display:flex;flex:1;padding:14px;gap:12px;overflow:hidden}
+.spal{width:185px;flex-shrink:0;background:var(--white);border-radius:16px;padding:13px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.spal::-webkit-scrollbar{width:0}
+.sgrid{flex:1;background:var(--white);border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.ssec{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:8px 0 4px}
+.rtile{padding:8px 9px;border-radius:8px;border:1px solid var(--border);cursor:grab;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;transition:all .13s}
+.rtile:hover{background:var(--bg)}
+.rsw{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+#grid{display:grid;gap:2px;user-select:none;background:var(--bg);border-radius:8px;padding:3px;overflow:auto;flex:1}
+.gc{width:33px;height:33px;border-radius:3px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;transition:all .08s}
+.gc:hover{border-color:#888}
+.sact{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.sbtn{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .13s}
+.sbtn:hover,.sbtn.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+
+/* ══ ROUTE ══ */
+.rv{display:flex;flex:1;padding:14px;gap:12px;overflow:hidden}
+.rmap{flex:1;background:var(--white);border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:9px}
+.rside{width:245px;flex-shrink:0;display:flex;flex-direction:column;gap:9px}
+.rp{background:var(--white);border-radius:16px;padding:13px}
+.rptl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+#rsvg{flex:1;border-radius:10px;display:block;cursor:crosshair}
+.wpi{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;font-weight:500}
+.wpi:last-child{border-bottom:none}
+.wnum{width:18px;height:18px;border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.wdel{cursor:pointer;color:var(--muted);font-size:11px;margin-left:auto}
+.wdel:hover{color:var(--red)}
+.ur{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:11px;font-weight:500;transition:all .13s;margin-bottom:4px}
+.ur.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sb{background:var(--bg);border-radius:8px;padding:8px}
+.sv2{font-size:18px;font-weight:800}
+.sl{font-size:8px;color:var(--muted);letter-spacing:1px}
+.tbtn{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .13s}
+.tbtn:hover{background:var(--dark);color:#fff;border-color:var(--dark)}
+
+/* ══ UNITS ══ */
+.uv{flex:1;padding:18px;overflow-y:auto}
+.ug{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.uc{background:var(--white);border-radius:16px;padding:16px;cursor:pointer;transition:all .18s}
+.uc:hover{transform:translateY(-2px);box-shadow:var(--shl)}
+.uch{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.uem{font-size:24px}
+.ut{font-size:14px;font-weight:700}.us2{font-size:10px;color:var(--muted)}
+.sc{padding:3px 9px;border-radius:20px;font-size:9px;font-weight:600;letter-spacing:.3px}
+.sc.active{background:#E8F8EE;color:var(--jade)}
+.sc.route{background:#FFF8E0;color:#A07800}
+.sc.standby{background:var(--bg);color:var(--muted)}
+.sc.maint{background:#FEE8E8;color:var(--red)}
+.us3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.usb{background:var(--bg);border-radius:7px;padding:7px;text-align:center}
+.usv{font-size:16px;font-weight:800}
+.usl{font-size:8px;color:var(--muted);letter-spacing:1px}
+.ubw{background:var(--bg);height:4px;border-radius:2px;margin-top:10px;overflow:hidden}
+.ub{height:100%;border-radius:2px;background:var(--dark)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ▓▓ TOPBAR ▓▓ -->
+<div class="topbar">
+  <div class="avs">
+    <div class="av" style="background:#F5D0C8">👩</div>
+    <div class="av" style="background:#D2E8F5">👨</div>
+    <div class="av" style="background:#D4F0E2">🧕</div>
+    <div class="av" style="background:#F5EDD2">🧔</div>
+    <div class="av av-add">＋</div>
+  </div>
+  <div class="tab-nav">
+    <button class="tnb active" onclick="showTab('ov',this)">Overview</button>
+    <button class="tnb" onclick="showTab('diag',this)">Diagnosis</button>
+    <button class="tnb" onclick="showTab('space',this)">Space Design</button>
+    <button class="tnb" onclick="showTab('route',this)">Route Mobility</button>
+    <button class="tnb" onclick="showTab('units',this)">Units</button>
+  </div>
+  <div class="search">🔍&nbsp;&nbsp;Search patient</div>
+</div>
+
+<!-- ▓▓ OVERVIEW ▓▓ -->
+<div id="t-ov" class="tab on">
+  <div class="ov">
+
+    <!-- LEFT: ANATOMICAL BODY -->
+    <div class="body-col">
+      <div class="body-wrap">
+        <svg viewBox="0 0 200 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
+          <defs>
+            <radialGradient id="skin" cx="40%" cy="25%" r="70%">
+              <stop offset="0%" stop-color="#FAECD8"/>
+              <stop offset="100%" stop-color="#C8996A"/>
+            </radialGradient>
+            <radialGradient id="skin2" cx="42%" cy="28%" r="60%">
+              <stop offset="0%" stop-color="#F8E4C8"/>
+              <stop offset="100%" stop-color="#D4A878"/>
+            </radialGradient>
+          </defs>
+
+          <!-- HEAD -->
+          <ellipse cx="100" cy="48" rx="34" ry="42" fill="url(#skin2)" stroke="#C49068" stroke-width="1"/>
+          <ellipse cx="100" cy="16" rx="35" ry="18" fill="#4A2E18" opacity=".6"/>
+          <!-- eyes -->
+          <ellipse cx="89" cy="46" rx="3.5" ry="4.5" fill="#3A2010" opacity=".5"/>
+          <ellipse cx="111" cy="46" rx="3.5" ry="4.5" fill="#3A2010" opacity=".5"/>
+          <path d="M92,62 Q100,68 108,62" stroke="#C49068" stroke-width="1.4" fill="none"/>
+
+          <!-- NECK -->
+          <rect x="91" y="87" width="18" height="16" rx="5" fill="url(#skin)" stroke="#C49068" stroke-width="1"/>
+
+          <!-- TORSO -->
+          <path d="M63,103 Q40,118 38,168 Q35,230 48,278 Q60,316 88,325 L112,325 Q140,316 152,278 Q165,230 162,168 Q160,118 137,103 Q124,96 100,95 Q76,96 63,103Z"
+                fill="url(#skin)" stroke="#C49068" stroke-width="1"/>
+          <!-- chest lines -->
+          <path d="M76,134 Q100,148 124,134" stroke="#C49068" stroke-width=".7" fill="none" opacity=".3"/>
+          <line x1="92" y1="188" x2="108" y2="188" stroke="#C49068" stroke-width=".6" opacity=".25"/>
+          <line x1="90" y1="208" x2="110" y2="208" stroke="#C49068" stroke-width=".6" opacity=".22"/>
+          <line x1="91" y1="228" x2="109" y2="228" stroke="#C49068" stroke-width=".6" opacity=".2"/>
+          <line x1="100" y1="98" x2="100" y2="325" stroke="#C49068" stroke-width=".5" opacity=".18"/>
+
+          <!-- LEFT ARM -->
+          <path d="M63,106 Q36,122 28,170 Q20,218 24,260 Q26,280 36,290 Q49,296 55,282 Q66,254 70,210 Q74,172 77,138Z"
+                fill="url(#skin)" stroke="#C49068" stroke-width="1"/>
+          <ellipse cx="32" cy="298" rx="10" ry="13" fill="url(#skin2)" stroke="#C49068" stroke-width="1"/>
+
+          <!-- RIGHT ARM -->
+          <path d="M137,106 Q164,122 172,170 Q180,218 176,260 Q174,280 164,290 Q151,296 145,282 Q134,254 130,210 Q126,172 123,138Z"
+                fill="url(#skin)" stroke="#C49068" stroke-width="1"/>
+          <ellipse cx="168" cy="298" rx="10" ry="13" fill="url(#skin2)" stroke="#C49068" stroke-width="1"/>
+
+          <!-- PELVIS -->
+          <path d="M88,325 Q64,332 58,355 Q54,375 66,388 Q82,398 100,398 Q118,398 134,388 Q146,375 142,355 Q136,332 112,325Z"
+                fill="url(#skin)" stroke="#C49068" stroke-width="1"/>
+
+          <!-- LEFT LEG -->
+          <path d="M72,392 Q58,406 54,455 Q50,500 52,530 Q54,545 67,548 Q80,548 84,530 Q89,500 92,455 Q96,406 100,392Z"
+                fill="url(#skin)" stroke="#C49068" stroke-width="1"/>
+          <ellipse cx="64" cy="551" rx="14" ry="7" fill="url(#skin2)" stroke="#C49068" stroke-width="1"/>
+
+          <!-- RIGHT LEG -->
+          <path d="M128,392 Q142,406 146,455 Q150,500 148,530 Q146,545 133,548 Q120,548 116,530 Q111,500 108,455 Q104,406 100,392Z"
+                fill="url(#skin)" stroke="#C49068" stroke-width="1"/>
+          <ellipse cx="136" cy="551" rx="14" ry="7" fill="url(#skin2)" stroke="#C49068" stroke-width="1"/>
+
+          <!-- ORGANS -->
+          <ellipse cx="82" cy="150" rx="13" ry="19" fill="#E890A0" opacity=".2"/>
+          <ellipse cx="118" cy="150" rx="13" ry="19" fill="#E890A0" opacity=".2"/>
+          <ellipse cx="98" cy="160" rx="10" ry="12" fill="#CC3838" opacity=".25"/>
+          <ellipse cx="118" cy="202" rx="15" ry="10" fill="#A04820" opacity=".16"/>
+          <ellipse cx="96" cy="216" rx="12" ry="10" fill="#C8A830" opacity=".16"/>
+          <ellipse cx="80" cy="256" rx="8" ry="12" fill="#4870C0" opacity=".18"/>
+          <ellipse cx="120" cy="256" rx="8" ry="12" fill="#4870C0" opacity=".18"/>
+          <ellipse cx="100" cy="296" rx="19" ry="15" fill="#C0A070" opacity=".13"/>
+
+          <!-- MERIDIAN LINES -->
+          <path d="M100,98 L100,396" stroke="#C8A550" stroke-width="1" stroke-dasharray="4,5" opacity=".3" fill="none"/>
+          <path d="M84,100 Q80,178 78,272 Q76,332 80,396" stroke="#C8A550" stroke-width=".9" stroke-dasharray="3,6" opacity=".22" fill="none"/>
+          <path d="M116,100 Q120,178 122,272 Q124,332 120,396" stroke="#C8A550" stroke-width=".9" stroke-dasharray="3,6" opacity=".22" fill="none"/>
+          <path d="M62,108 Q44,190 34,282" stroke="#C8A550" stroke-width=".7" stroke-dasharray="3,7" opacity=".17" fill="none"/>
+          <path d="M138,108 Q156,190 166,282" stroke="#C8A550" stroke-width=".7" stroke-dasharray="3,7" opacity=".17" fill="none"/>
+        </svg>
+
+        <!-- OVERLAY BADGES -->
+        <div style="position:absolute;inset:0;pointer-events:none">
+          <div class="bdg bdg-w" style="top:21%;left:2%;pointer-events:all" title="Lung / Tai Yin">1</div>
+          <div class="bdg bdg-y" style="top:35%;left:38%;pointer-events:all" title="Heart / Shao Yin">9</div>
+          <div class="bdg bdg-w" style="top:43%;right:2%;pointer-events:all" title="Liver / Jue Yin">2</div>
+          <div class="bdg bdg-w" style="top:50%;left:6%;pointer-events:all" title="Kidney">3</div>
+          <div class="bdg bdg-w" style="top:46%;right:20%;pointer-events:all" title="Spleen / Tai Yin">2</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER-LEFT: CONDITION LIST -->
+    <div class="cond-col">
+      <div class="csec">Patterns</div>
+
+      <div class="ci" onclick="pickCond(this)">
+        <div class="cdot"></div>
+        <div><div class="cn">Palpitations</div><div class="cs">Heart Fire</div></div>
+      </div>
+      <div class="ci" onclick="pickCond(this)">
+        <div class="cdot"></div>
+        <div><div class="cn">Slow Pulse</div><div class="cs">Heart Yang Def.</div></div>
+      </div>
+      <div class="ci" onclick="pickCond(this)">
+        <div class="cdot"></div>
+        <div><div class="cn">Hypertension</div><div class="cs">Liver Yang Rising</div></div>
+      </div>
+
+      <!-- ACTIVE -->
+      <div class="ci on" onclick="pickCond(this)">
+        <div class="cdot"></div>
+        <div style="width:100%">
+          <div class="cn">Fatigue &amp; Cold</div>
+          <div class="cs">Kidney Yang Def.</div>
+          <div class="cexp">
+            <svg viewBox="0 0 100 24" style="flex:1;height:20px">
+              <path d="M0,18 L16,18 L20,6 L26,22 L30,12 L40,18 L55,18 L60,7 L66,21 L71,10 L83,18 L100,18"
+                    stroke="#E2F441" stroke-width="1.5" fill="none"/>
+            </svg>
+            <span style="font-size:9px;color:#E2F441;white-space:nowrap">Pulse</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ci" onclick="pickCond(this)">
+        <div class="cdot"></div>
+        <div><div class="cn">Insomnia</div><div class="cs">Heart–Spleen Def.</div></div>
+      </div>
+      <div class="ci" onclick="pickCond(this)">
+        <div class="cdot"></div>
+        <div><div class="cn">Joint Pain</div><div class="cs">Bi Syndrome</div></div>
+      </div>
+      <div class="ci" onclick="pickCond(this)">
+        <div class="cdot"></div>
+        <div><div class="cn">Chest Oppression</div><div class="cs">Phlegm–Blood Stasis</div></div>
+      </div>
+    </div>
+
+    <!-- CENTER-RIGHT: FLOATING CARDS -->
+    <div class="cards-col">
+      <div class="card-scene">
+
+        <!-- Connector curves -->
+        <svg class="conn-svg" viewBox="0 0 660 390" preserveAspectRatio="none" style="width:100%;height:100%">
+          <path d="M0,155 Q50,155 75,105" stroke="var(--border)" stroke-width="2" fill="none"/>
+          <path d="M272,80 Q330,80 362,80" stroke="var(--border)" stroke-width="1.5" fill="none"/>
+          <path d="M272,80 Q328,155 362,195" stroke="var(--border)" stroke-width="1.5" fill="none"/>
+          <path d="M272,80 Q360,48 476,48" stroke="var(--border)" stroke-width="1.5" fill="none"/>
+          <path d="M272,80 Q316,305 356,336" stroke="var(--border)" stroke-width="1.5" fill="none"/>
+          <path d="M556,95 Q600,145 600,193" stroke="var(--border)" stroke-width="1.2" fill="none"/>
+        </svg>
+
+        <!-- CARD: Pulse Reading (dark, main) -->
+        <div class="fc fc-d" style="left:0;top:12px;width:268px">
+          <div class="fcp">
+            <div class="fclbl">Office visit</div>
+            <div class="fctit">Pulse Reading</div>
+            <div class="big">深 · 遲<span class="bigs"> Deep · Slow</span></div>
+            <div style="font-size:10px;opacity:.4;margin-bottom:8px">Wiry quality · Kidney depth</div>
+            <svg viewBox="0 0 236 42" style="width:100%;display:block">
+              <path d="M0,32 L24,32 L29,8 L36,40 L42,20 L54,32 L72,32 L78,9 L85,38 L91,18 L106,32 L134,32 L140,10 L147,39 L153,17 L168,32 L208,32 L215,6 L222,42 L228,15 L236,32"
+                    stroke="#E2F441" stroke-width="1.8" fill="none"/>
+            </svg>
+            <div style="display:flex;gap:4px;align-items:center;margin-top:9px">
+              <div style="width:7px;height:7px;border-radius:50%;background:#333"></div>
+              <div style="width:7px;height:7px;border-radius:50%;background:#333"></div>
+              <div style="width:7px;height:7px;border-radius:50%;background:#E2F441"></div>
+              <div style="width:12px;height:12px;border-radius:50%;background:#E2F441;border:2px solid #fff"></div>
+              <div style="width:7px;height:7px;border-radius:50%;background:#E2F441"></div>
+              <div style="width:7px;height:7px;border-radius:50%;background:#333"></div>
+              <div style="width:7px;height:7px;border-radius:50%;background:#333"></div>
+              <span style="font-size:8px;opacity:.35;margin-left:4px">MO&nbsp;TU&nbsp;WE&nbsp;TH&nbsp;FR</span>
+            </div>
+            <div class="fcdt">15 – 22 Mar 2026</div>
+          </div>
+        </div>
+
+        <!-- CARD: Tongue (light) -->
+        <div class="fc fc-l" style="left:278px;top:6px;width:168px">
+          <div class="fcp" style="padding:13px 14px">
+            <div class="fclbl" style="color:var(--muted)">Office visit</div>
+            <div class="fctit">Tongue Analysis</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:10px">
+              <div style="width:11px;height:11px;border-radius:50%;background:#F8D8D8"></div>
+              <div style="width:11px;height:11px;border-radius:50%;background:#EECEC4"></div>
+              <div style="width:11px;height:11px;border-radius:50%;background:#FFF;border:1px solid #ddd"></div>
+              <div style="width:11px;height:11px;border-radius:50%;background:#F8F0E0"></div>
+              <div style="width:11px;height:11px;border-radius:50%;background:#F2E8D4"></div>
+              <div style="width:11px;height:11px;border-radius:50%;background:#EDE0CE"></div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.55">Pale body · White moist coat<br>Tooth marks on edges</div>
+            <div class="fcdt">07.03</div>
+          </div>
+        </div>
+
+        <!-- CARD: Herb Formula (dark) -->
+        <div class="fc fc-d" style="left:458px;top:0;width:192px">
+          <div class="fcp" style="padding:13px 15px">
+            <div class="fclbl">Office visit</div>
+            <div class="fctit">Herb Formula</div>
+            <div style="margin-top:10px;font-family:'Noto Serif SC',serif;font-size:14px;color:#E2F441;letter-spacing:3px">右歸丸</div>
+            <div style="font-size:11px;opacity:.55;margin-bottom:9px">You Gui Wan</div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+              <div style="aspect-ratio:1;border-radius:50%;background:rgba(226,244,65,.12);border:1px solid rgba(226,244,65,.25)"></div>
+              <div style="aspect-ratio:1;border-radius:50%;background:rgba(226,244,65,.3);border:1px solid rgba(226,244,65,.45)"></div>
+              <div style="aspect-ratio:1;border-radius:50%;background:rgba(226,244,65,.58);border:1px solid var(--yellow)"></div>
+              <div style="aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.1)"></div>
+              <div style="aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.06)"></div>
+            </div>
+            <div class="fcdt">07.03</div>
+          </div>
+        </div>
+
+        <!-- CARD: Lab Results (light, small) -->
+        <div class="fc fc-l" style="left:278px;top:192px;width:148px">
+          <div class="fcp" style="padding:12px 13px">
+            <div class="fclbl" style="color:var(--muted)">Office visit</div>
+            <div class="fctit" style="font-size:13px">Lab Results</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.55">Kidney · Cortisol<br>Thyroid panel</div>
+            <div class="fcdt">07.03</div>
+          </div>
+        </div>
+
+        <!-- CARD: Acupuncture (dark) -->
+        <div class="fc fc-d" style="left:370px;top:184px;width:230px">
+          <div class="fcp" style="padding:13px 15px">
+            <div class="fclbl">Office visit</div>
+            <div class="fctit">Acupuncture Session</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px 0">
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;color:#E2F441;font-weight:600">KD3</div>
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;opacity:.5">BL23</div>
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;opacity:.5">DU4</div>
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;opacity:.5">CV4</div>
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;opacity:.45">ST36</div>
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;color:#E2F441;font-weight:600">SP6</div>
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;opacity:.45">GV20</div>
+              <div style="background:rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:9px;opacity:.45">LV3</div>
+            </div>
+            <div class="fcdt">07.03</div>
+          </div>
+        </div>
+
+        <!-- CARD: Treatment Note (light) -->
+        <div class="fc fc-l" style="left:278px;top:336px;width:168px">
+          <div class="fcp" style="padding:12px 13px">
+            <div class="fclbl" style="color:var(--muted)">Office visit</div>
+            <div class="fctit" style="font-size:13px">Treatment Note</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.55">Wk 3: Energy ↑<br>Sleep improved · Cold ↓</div>
+            <div class="fcdt">14.03</div>
+          </div>
+        </div>
+
+        <!-- CARD: Moxa (light) -->
+        <div class="fc fc-l" style="right:0;top:203px;width:150px">
+          <div class="fcp" style="padding:12px 13px">
+            <div class="fclbl" style="color:var(--muted)">Office visit</div>
+            <div class="fctit" style="font-size:13px">Moxa Therapy</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.55">BL23 · CV4 · ST36<br><span style="font-size:9px">Follow-up</span></div>
+            <div class="fcdt">07.03</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /.ov -->
+
+  <!-- TIMELINE -->
+  <div class="tl">
+    <span style="font-size:9px;color:var(--muted);flex-shrink:0">2020</span>
+    <div class="tls">
+      <div class="tld"></div><div class="tld"></div>
+      <span class="tly">2021</span>
+      <div class="tld"></div><div class="tld"></div><div class="tld"></div>
+      <span class="tly">2022</span>
+      <div class="tld"></div><div class="tld"></div>
+      <span class="tly">2023</span>
+      <div class="tld"></div><div class="tld"></div><div class="tld"></div>
+      <span class="tly">2024</span>
+      <div class="tld hi"></div><div class="tld"></div><div class="tld"></div>
+      <span class="tly" style="color:var(--dark);font-weight:700">2025</span>
+      <div class="tld hi"></div><div class="tld yel"></div><div class="tld hi"></div><div class="tld hi"></div>
+      <span class="tly" style="color:var(--dark);font-weight:800">2026</span>
+      <div class="tld yel"></div><div class="tld hi"></div><div class="tld hi"></div>
+    </div>
+    <div style="display:flex;gap:5px">
+      <button class="tlb">−</button>
+      <button class="tlb">+</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM 3 PANELS -->
+  <div class="bots">
+    <!-- Herbal Medicine -->
+    <div class="bp">
+      <div class="bph">
+        <span class="bpt">Herbal Medicine</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:10px;color:var(--muted);padding:3px 9px;background:var(--bg);border-radius:20px;cursor:pointer">Weeks ↓</span>
+          <div class="bic">↗</div>
+        </div>
+      </div>
+      <div class="bpr">
+        <div class="bpi"><div class="bpio">🌿</div><div><div class="bpn">You Gui Wan ×2</div><div class="bps">3g × 2/day</div></div></div>
+        <div class="bpi"><div class="bpio dk">🌱</div><div><div class="bpn">Liu Wei Di ×1</div><div class="bps">2g × 3/day</div></div></div>
+        <div class="bpi"><div class="bpio">🌿</div><div><div class="bpn">Bu Zhong Yi ×2</div><div class="bps">3g × 2/day</div></div></div>
+        <div class="bpi"><div class="bpio dk">🍄</div><div><div class="bpn">Gou Qi Zi</div><div class="bps">10g daily</div></div></div>
+      </div>
+    </div>
+    <!-- Visits -->
+    <div class="bp">
+      <div class="bph"><span class="bpt">Visits</span><div class="bic">⊞</div></div>
+      <div class="vch">
+        <div class="vbar"><div class="vb" style="height:60px;background:var(--yellow);color:var(--dark)"><div class="vbl">Acu.</div></div><div class="vdt">07.03</div></div>
+        <div class="vbar"><div class="vb" style="height:44px;background:var(--dark);color:#fff"><div class="vbl" style="color:#fff">Herb</div></div><div class="vdt">12.03</div></div>
+        <div class="vbar"><div class="vb" style="height:30px;background:var(--bg)"><div class="vbl" style="color:var(--muted)">Lab</div></div><div class="vdt">19.03</div></div>
+        <div class="vbar"><div class="vb" style="height:54px;background:var(--yellow);color:var(--dark)"><div class="vbl">Acu.</div></div><div class="vdt">22.03</div></div>
+        <div class="vbar"><div class="vb" style="height:36px;background:var(--bg)"><div class="vbl" style="color:var(--muted)">Note</div></div><div class="vdt">27.03</div></div>
+      </div>
+    </div>
+    <!-- Labs -->
+    <div class="bp">
+      <div class="bph"><span class="bpt">Labs</span><div class="bic">⊞</div></div>
+      <div class="labl"><div><div style="font-size:12px;font-weight:600">Kidney Function</div><div style="font-size:10px;color:var(--muted)">Creatinine · 83 μmol/L</div></div><div class="labds"><div class="lad f"></div><div class="lad y"></div><div class="lad"></div><div class="lad"></div></div></div>
+      <div class="divl"></div>
+      <div class="labl"><div><div style="font-size:12px;font-weight:600">Cortisol</div><div style="font-size:10px;color:var(--muted)">Morning · 14 μg/dL</div></div><div class="labds"><div class="lad f"></div><div class="lad f"></div><div class="lad y"></div><div class="lad"></div></div></div>
+      <div class="divl"></div>
+      <div class="labl"><div><div style="font-size:12px;font-weight:600">Thyroid TSH</div><div style="font-size:10px;color:var(--muted)">2.1 mIU/L</div></div><div class="labds"><div class="lad f"></div><div class="lad f"></div><div class="lad f"></div><div class="lad y"></div></div></div>
+    </div>
+  </div>
+</div><!-- /#t-ov -->
+
+<!-- ▓▓ DIAGNOSIS ▓▓ -->
+<div id="t-diag" class="tab">
+  <div class="dv">
+    <div class="dform">
+      <div style="font-size:18px;font-weight:700;margin-bottom:2px">Patient Assessment</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px">AI-powered TCM pattern recognition</div>
+      <label class="fl">Age &amp; Gender</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+        <input class="fi" type="number" id="dAge" value="45" placeholder="Age">
+        <select class="fsel" id="dGen"><option>Female</option><option>Male</option></select>
+      </div>
+      <label class="fl">Chief Complaint</label>
+      <textarea class="fta" id="dComp">Fatigue, cold limbs, lower back pain, frequent urination at night, low libido, pale face</textarea>
+      <label class="fl">Symptoms</label>
+      <div class="tags">
+        <div class="tag on" onclick="this.classList.toggle('on')">Fatigue</div>
+        <div class="tag on" onclick="this.classList.toggle('on')">Cold limbs</div>
+        <div class="tag on" onclick="this.classList.toggle('on')">Back pain</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Headache</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Insomnia</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Anxiety</div>
+        <div class="tag on" onclick="this.classList.toggle('on')">Nocturia</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Palpitations</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Dry mouth</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Poor appetite</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Bloating</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Night sweats</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Dizziness</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Tinnitus</div>
+        <div class="tag" onclick="this.classList.toggle('on')">Joint pain</div>
+      </div>
+      <label class="fl">Tongue</label>
+      <select class="fsel" id="dTongue">
+        <option>Pale, white moist coat</option>
+        <option>Red, yellow coat</option>
+        <option>Purple, thin coat</option>
+        <option>Pale, peeled coat</option>
+        <option>Dark red, thick coat</option>
+      </select>
+      <label class="fl">Pulse</label>
+      <select class="fsel" id="dPulse">
+        <option>Deep, slow, weak</option>
+        <option>Wiry, rapid</option>
+        <option>Slippery</option>
+        <option>Thin, weak</option>
+        <option>Rapid, fine</option>
+      </select>
+      <button class="runbtn" id="diagBtn" onclick="runDiag()">Run AI Diagnosis</button>
+    </div>
+    <div class="dres">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:18px;font-weight:700">Diagnosis Result</div>
+        <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:5px 14px;border-radius:20px;background:var(--dark);color:var(--yellow)">Participatory Citizen Lab</div>
+      </div>
+      <div id="diagOut">
+        <div class="rph">
+          <div style="font-size:44px">☯</div>
+          <div style="font-weight:600">Awaiting Assessment</div>
+          <div style="font-size:12px;color:var(--border)">Complete the form and run diagnosis</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▓▓ SPACE DESIGN ▓▓ -->
+<div id="t-space" class="tab">
+  <div class="sv">
+    <div class="spal">
+      <div style="font-size:15px;font-weight:700;margin-bottom:2px">Clinic Builder</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">1 cell = 2×2 m</div>
+      <div class="ssec">Treatment</div>
+      <div class="rtile" draggable="true" data-t="acupuncture" data-c="#2A8B66" ondragstart="ds(event)"><div class="rsw" style="background:#2A8B66"></div>Acupuncture</div>
+      <div class="rtile" draggable="true" data-t="herbal" data-c="#C8A55A" ondragstart="ds(event)"><div class="rsw" style="background:#C8A55A"></div>Herbal Pharmacy</div>
+      <div class="rtile" draggable="true" data-t="massage" data-c="#7B5EA7" ondragstart="ds(event)"><div class="rsw" style="background:#7B5EA7"></div>Tui Na Massage</div>
+      <div class="rtile" draggable="true" data-t="consult" data-c="#3A7AC8" ondragstart="ds(event)"><div class="rsw" style="background:#3A7AC8"></div>Consultation</div>
+      <div class="rtile" draggable="true" data-t="cupping" data-c="#C04040" ondragstart="ds(event)"><div class="rsw" style="background:#C04040"></div>Cupping</div>
+      <div class="ssec">Support</div>
+      <div class="rtile" draggable="true" data-t="waiting" data-c="#4A7A8A" ondragstart="ds(event)"><div class="rsw" style="background:#4A7A8A"></div>Waiting Area</div>
+      <div class="rtile" draggable="true" data-t="reception" data-c="#8A7A4A" ondragstart="ds(event)"><div class="rsw" style="background:#8A7A4A"></div>Reception</div>
+      <div class="rtile" draggable="true" data-t="storage" data-c="#777" ondragstart="ds(event)"><div class="rsw" style="background:#777"></div>Herb Storage</div>
+      <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+      <div class="sact">
+        <button class="sbtn on" id="tp" onclick="setT('place')">Place</button>
+        <button class="sbtn" id="te" onclick="setT('erase')">Erase</button>
+        <button class="sbtn" onclick="clrG()">Clear</button>
+        <button class="sbtn" style="background:var(--dark);color:#fff;border-color:var(--dark)" onclick="genL()">⚡ AI Layout</button>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+      <div id="sts" style="font-size:10px;color:var(--muted);line-height:1.9"></div>
+    </div>
+    <div class="sgrid">
+      <div><div style="font-size:15px;font-weight:700">Floor Plan</div><div style="font-size:10px;color:var(--muted)">Click · Drag · Drop from palette</div></div>
+      <div id="grid" onmouseleave="paint=false"></div>
+      <div id="leg" style="display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--muted)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ▓▓ ROUTE MOBILITY ▓▓ -->
+<div id="t-route" class="tab">
+  <div class="rv">
+    <div class="rmap">
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+        <div style="font-size:15px;font-weight:700">Route Planner</div>
+        <div style="font-size:10px;color:var(--muted);flex:1">Click map to add · Right-click to remove</div>
+        <button class="tbtn" id="wpTyp" onclick="cycWP()">🏥 Hospital</button>
+        <button class="tbtn" onclick="clrR()">Clear</button>
+        <button class="tbtn" style="background:var(--dark);color:#fff;border-color:var(--dark)" onclick="optR()">⚡ Optimize</button>
+      </div>
+      <svg id="rsvg" viewBox="0 0 680 330" onclick="addWP(event)" oncontextmenu="delWP(event)">
+        <defs>
+          <pattern id="rg" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M40 0L0 0 0 40" fill="none" stroke="#DDDAD2" stroke-width=".8"/>
+          </pattern>
+        </defs>
+        <rect width="680" height="330" fill="#EDE9E2"/>
+        <rect width="680" height="330" fill="url(#rg)"/>
+        <text x="40" y="34" fill="#CCC9C0" font-size="10" font-family="Outfit" letter-spacing="2">ZONE A</text>
+        <text x="244" y="34" fill="#CCC9C0" font-size="10" font-family="Outfit" letter-spacing="2">ZONE B</text>
+        <text x="456" y="34" fill="#CCC9C0" font-size="10" font-family="Outfit" letter-spacing="2">ZONE C</text>
+        <text x="40" y="192" fill="#CCC9C0" font-size="10" font-family="Outfit" letter-spacing="2">ZONE D</text>
+        <text x="244" y="192" fill="#CCC9C0" font-size="10" font-family="Outfit" letter-spacing="2">ZONE E</text>
+        <text x="456" y="192" fill="#CCC9C0" font-size="10" font-family="Outfit" letter-spacing="2">ZONE F</text>
+        <line x1="226" y1="0" x2="226" y2="330" stroke="#DDDAD2" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <line x1="452" y1="0" x2="452" y2="330" stroke="#DDDAD2" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <line x1="0" y1="165" x2="680" y2="165" stroke="#DDDAD2" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <g id="rlines"></g><g id="rwps"></g>
+      </svg>
+    </div>
+    <div class="rside">
+      <div class="rp">
+        <div class="rptl">Select Unit</div>
+        <div class="ur on" onclick="pickU(this)">🚐 Clinic Van A <span style="font-size:9px;opacity:.45;margin-left:4px">6 staff</span></div>
+        <div class="ur" onclick="pickU(this)">🚑 Mobile Unit B <span style="font-size:9px;opacity:.45;margin-left:4px">4 staff</span></div>
+        <div class="ur" onclick="pickU(this)">🌿 Herb Truck C <span style="font-size:9px;opacity:.45;margin-left:4px">2 staff</span></div>
+      </div>
+      <div class="rp" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+        <div class="rptl">Waypoints</div>
+        <div id="wplist" style="flex:1;overflow-y:auto">
+          <div style="color:var(--muted);font-size:11px;text-align:center;padding:18px">Click map to add stops</div>
+        </div>
+      </div>
+      <div class="rp">
+        <div class="rptl">Statistics</div>
+        <div class="sg">
+          <div class="sb"><div class="sv2" id="rStops">0</div><div class="sl">STOPS</div></div>
+          <div class="sb"><div class="sv2" id="rDist">0 km</div><div class="sl">DIST</div></div>
+          <div class="sb"><div class="sv2" id="rTime">0h</div><div class="sl">TIME</div></div>
+          <div class="sb"><div class="sv2" id="rPat">0</div><div class="sl">PATIENTS</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▓▓ UNITS ▓▓ -->
+<div id="t-units" class="tab">
+  <div class="uv">
+    <div style="font-size:22px;font-weight:800;margin-bottom:16px">Mobile TCM Fleet</div>
+    <div class="ug" id="uGrid"></div>
+  </div>
+</div>
+
+</div><!-- /.app -->
+
+<script>
+/* ── NAV ── */
+function showTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tnb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('t-'+id).classList.add('on');
+  btn.classList.add('active');
+}
+function pickCond(el){
+  document.querySelectorAll('.ci').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+/* ── DIAGNOSIS ── */
+async function runDiag(){
+  const btn=document.getElementById('diagBtn');
+  const out=document.getElementById('diagOut');
+  const syms=[...document.querySelectorAll('.tag.on')].map(t=>t.textContent).join(', ');
+  btn.disabled=true; btn.textContent='Analyzing…';
+  out.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px;gap:12px"><div class="spin"></div><div style="font-size:12px;color:var(--muted)">AI analyzing TCM patterns…</div></div>`;
+  const prompt=`You are an expert TCM physician. Analyze this patient and output ONLY raw HTML (no markdown, no backtick fences).
+
+Patient: ${document.getElementById('dAge').value}yo ${document.getElementById('dGen').value}
+Complaint: ${document.getElementById('dComp').value}
+Symptoms: ${syms}
+Tongue: ${document.getElementById('dTongue').value}
+Pulse: ${document.getElementById('dPulse').value}
+
+Output exactly this structure (fill in real TCM content, keep class names):
+<div class="rc"><h4>🔍 TCM Pattern Diagnosis</h4><p>[Primary and secondary TCM patterns with Chinese names]</p></div>
+<div class="rc y"><h4>📋 Pathological Analysis</h4><p>[TCM pathology: organ systems, qi/blood/yin/yang imbalance, 2-3 sentences]</p></div>
+<div class="rc g"><h4>🌿 Treatment Principle</h4><p>[TCM treatment strategy]</p></div>
+<div class="rc"><h4>💊 Herbal Formula</h4><p>[Classical formula English + Chinese, key herbs, modification notes]</p></div>
+<div class="rc r"><h4>🔵 Acupuncture Points</h4><p>[6-8 points with codes and brief rationale]</p></div>
+<div class="rc y"><h4>🥢 Diet &amp; Lifestyle</h4><p>[3 specific TCM dietary and lifestyle recommendations]</p></div>
+<div style="font-size:10px;color:var(--muted);padding:9px 12px;background:var(--bg);border-radius:8px;margin-top:4px">⚠ Educational reference only. Consult a licensed TCM practitioner.</div>`;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const d=await r.json();
+    out.innerHTML=d.content.map(i=>i.text||'').join('');
+  }catch(e){
+    out.innerHTML=`<div style="background:#FEF0F0;border-radius:10px;padding:16px 18px;border-left:3px solid var(--red)">
+      <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">⚠ API Connection Required</div>
+      <div style="font-size:12px;color:#555;line-height:1.7">
+        The AI Diagnosis feature requires the app to run inside <b>claude.ai</b> where the Anthropic API key is provided automatically.<br><br>
+        <span style="opacity:.7">When opened locally (localhost / file://), API calls are blocked by the browser. Upload this file to claude.ai as an artifact to use the full AI diagnosis.</span>
+      </div>
+    </div>`;
+  }
+  btn.disabled=false; btn.textContent='Run AI Diagnosis';
+}
+
+/* ── SPACE DESIGNER ── */
+const COLS=14,ROWS=9;
+const RC={acupuncture:'#2A8B66',herbal:'#C8A55A',massage:'#7B5EA7',consult:'#3A7AC8',cupping:'#C04040',waiting:'#4A7A8A',reception:'#8A7A4A',storage:'#777'};
+const RL={acupuncture:'AC',herbal:'HP',massage:'TN',consult:'CO',cupping:'CU',waiting:'WA',reception:'RE',storage:'ST'};
+let gs={},cd=null,ct='place',paint=false;
+
+function setT(t){ct=t;document.getElementById('tp').classList.toggle('on',t==='place');document.getElementById('te').classList.toggle('on',t==='erase');}
+function ds(e){const tile=e.target.closest('.rtile');cd={t:tile.dataset.t,c:tile.dataset.c};}
+function bldG(){
+  const g=document.getElementById('grid');
+  g.style.gridTemplateColumns=`repeat(${COLS},33px)`;
+  g.innerHTML='';
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const el=document.createElement('div'); el.className='gc';
+    const k=`${r},${c}`;
+    if(gs[k]){const s=gs[k];el.style.background=s.c+'44';el.style.borderColor=s.c;el.style.color=s.c;el.textContent=RL[s.t]||'';}
+    el.addEventListener('mousedown',()=>{paint=true;pC(r,c);});
+    el.addEventListener('mouseup',()=>paint=false);
+    el.addEventListener('mouseover',()=>{if(paint)pC(r,c);});
+    el.addEventListener('dragover',e=>e.preventDefault());
+    el.addEventListener('drop',e=>{e.preventDefault();if(cd){gs[k]={...cd};bldG();updS();}});
+    g.appendChild(el);
+  }
+  bldLeg();
+}
+function pC(r,c){const k=`${r},${c}`;if(ct==='erase')delete gs[k];else if(cd)gs[k]={...cd};bldG();updS();}
+function clrG(){gs={};bldG();updS();}
+function genL(){
+  const L=[
+    {r:0,c:0,t:'reception'},{r:0,c:1,t:'reception'},
+    {r:0,c:2,t:'waiting'},{r:0,c:3,t:'waiting'},{r:0,c:4,t:'waiting'},{r:1,c:2,t:'waiting'},{r:1,c:3,t:'waiting'},
+    {r:0,c:6,t:'consult'},{r:0,c:7,t:'consult'},{r:1,c:6,t:'consult'},{r:1,c:7,t:'consult'},
+    {r:0,c:9,t:'consult'},{r:0,c:10,t:'consult'},{r:1,c:9,t:'consult'},{r:1,c:10,t:'consult'},
+    {r:3,c:0,t:'acupuncture'},{r:3,c:1,t:'acupuncture'},{r:3,c:2,t:'acupuncture'},{r:4,c:0,t:'acupuncture'},{r:4,c:1,t:'acupuncture'},{r:4,c:2,t:'acupuncture'},
+    {r:3,c:4,t:'acupuncture'},{r:3,c:5,t:'acupuncture'},{r:4,c:4,t:'acupuncture'},{r:4,c:5,t:'acupuncture'},
+    {r:3,c:7,t:'massage'},{r:3,c:8,t:'massage'},{r:4,c:7,t:'massage'},{r:4,c:8,t:'massage'},
+    {r:3,c:10,t:'cupping'},{r:3,c:11,t:'cupping'},{r:4,c:10,t:'cupping'},{r:4,c:11,t:'cupping'},
+    {r:6,c:0,t:'herbal'},{r:6,c:1,t:'herbal'},{r:6,c:2,t:'herbal'},{r:6,c:3,t:'herbal'},
+    {r:7,c:0,t:'herbal'},{r:7,c:1,t:'herbal'},{r:7,c:2,t:'herbal'},{r:7,c:3,t:'herbal'},
+    {r:6,c:11,t:'storage'},{r:6,c:12,t:'storage'},{r:7,c:11,t:'storage'},{r:7,c:12,t:'storage'},
+  ];
+  gs={};L.forEach(({r,c,t})=>{gs[`${r},${c}`]={t,c:RC[t]};});bldG();updS();
+}
+function bldLeg(){
+  const used=new Set(Object.values(gs).map(s=>s.t));
+  document.getElementById('leg').innerHTML=[...used].map(t=>`<div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:${RC[t]}"></div>${t}</div>`).join('');
+}
+function updS(){
+  const cnt={};
+  Object.values(gs).forEach(s=>cnt[s.t]=(cnt[s.t]||0)+1);
+  const tot=Object.keys(gs).length;
+  document.getElementById('sts').innerHTML=`<b>Total: ${tot*4} m²</b><br>`+Object.entries(cnt).map(([k,v])=>`${k}: ${v*4} m²`).join('<br>');
+}
+bldG();
+
+/* ── ROUTE ── */
+const WTL=['Hospital','Community Center','Market','School','Temple'];
+const WTC={Hospital:'#D94040','Community Center':'#2A8B66',Market:'#C8A55A',School:'#3A7AC8',Temple:'#7B5EA7'};
+const WTI={Hospital:'🏥','Community Center':'🏛',Market:'🛒',School:'🏫',Temple:'⛩'};
+let wpi=0,wps=[];
+function cycWP(){wpi=(wpi+1)%WTL.length;document.getElementById('wpTyp').textContent=WTI[WTL[wpi]]+' '+WTL[wpi];}
+function pickU(el){document.querySelectorAll('.ur').forEach(r=>r.classList.remove('on'));el.classList.add('on');}
+function addWP(e){
+  const svg=document.getElementById('rsvg');
+  const rect=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
+  const x=(e.clientX-rect.left)/rect.width*vb.width;
+  const y=(e.clientY-rect.top)/rect.height*vb.height;
+  wps.push({x,y,type:WTL[wpi],id:Date.now()});
+  renR();
+}
+function delWP(e){
+  e.preventDefault();
+  const svg=document.getElementById('rsvg');
+  const rect=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
+  const x=(e.clientX-rect.left)/rect.width*vb.width;
+  const y=(e.clientY-rect.top)/rect.height*vb.height;
+  wps=wps.filter(w=>Math.hypot(w.x-x,w.y-y)>22);
+  renR();
+}
+function clrR(){wps=[];renR();}
+function optR(){
+  if(wps.length<2)return;
+  const pts=[...wps],opt=[pts.shift()];
+  while(pts.length){const last=opt[opt.length-1];let bi=0,bd=Infinity;pts.forEach((p,i)=>{const d=Math.hypot(p.x-last.x,p.y-last.y);if(d<bd){bd=d;bi=i;}});opt.push(pts.splice(bi,1)[0]);}
+  wps=opt;renR();
+}
+function renR(){
+  const ns='http://www.w3.org/2000/svg';
+  const rl=document.getElementById('rlines');
+  const rw=document.getElementById('rwps');
+  rl.innerHTML='';rw.innerHTML='';
+  for(let i=0;i<wps.length-1;i++){
+    const a=wps[i],b=wps[i+1];
+    const line=document.createElementNS(ns,'line');
+    line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);
+    line.setAttribute('stroke','#1A1916');line.setAttribute('stroke-width','2');line.setAttribute('stroke-dasharray','6,3');line.setAttribute('opacity','.35');
+    rl.appendChild(line);
+    const dist=Math.hypot(b.x-a.x,b.y-a.y)*.08;
+    const t=document.createElementNS(ns,'text');
+    t.setAttribute('x',(a.x+b.x)/2);t.setAttribute('y',(a.y+b.y)/2-6);
+    t.setAttribute('fill','#9A9890');t.setAttribute('font-size','9');t.setAttribute('text-anchor','middle');t.setAttribute('font-family','Outfit');
+    t.textContent=dist.toFixed(1)+'km';rl.appendChild(t);
+  }
+  wps.forEach((w,i)=>{
+    const col=WTC[w.type]||'#1A1916';
+    const ring=document.createElementNS(ns,'circle');
+    ring.setAttribute('cx',w.x);ring.setAttribute('cy',w.y);ring.setAttribute('r','18');
+    ring.setAttribute('fill',col);ring.setAttribute('opacity','.1');rw.appendChild(ring);
+    const c=document.createElementNS(ns,'circle');
+    c.setAttribute('cx',w.x);c.setAttribute('cy',w.y);c.setAttribute('r','10');
+    c.setAttribute('fill',col);rw.appendChild(c);
+    const n=document.createElementNS(ns,'text');
+    n.setAttribute('x',w.x);n.setAttribute('y',w.y+4);
+    n.setAttribute('text-anchor','middle');n.setAttribute('fill','#fff');
+    n.setAttribute('font-size','9');n.setAttribute('font-weight','700');n.setAttribute('font-family','Outfit');
+    n.textContent=i+1;rw.appendChild(n);
+    const lbl=document.createElementNS(ns,'text');
+    lbl.setAttribute('x',w.x);lbl.setAttribute('y',w.y-16);
+    lbl.setAttribute('text-anchor','middle');lbl.setAttribute('fill',col);
+    lbl.setAttribute('font-size','9');lbl.setAttribute('font-weight','600');lbl.setAttribute('font-family','Outfit');
+    lbl.textContent=WTI[w.type]+' '+w.type;rw.appendChild(lbl);
+  });
+  const list=document.getElementById('wplist');
+  list.innerHTML=wps.length===0
+    ?'<div style="color:var(--muted);font-size:11px;text-align:center;padding:18px">Click map to add stops</div>'
+    :wps.map((w,i)=>`<div class="wpi"><div class="wnum">${i+1}</div><div style="flex:1"><div>${WTI[w.type]} ${w.type}</div><div style="font-size:9px;color:var(--muted)">Zone ${gz(w.x,w.y)}</div></div><div class="wdel" onclick="rmWP(${w.id})">✕</div></div>`).join('');
+  let td=0;
+  for(let i=0;i<wps.length-1;i++) td+=Math.hypot(wps[i+1].x-wps[i].x,wps[i+1].y-wps[i].y)*.08;
+  document.getElementById('rStops').textContent=wps.length;
+  document.getElementById('rDist').textContent=td.toFixed(1)+' km';
+  document.getElementById('rTime').textContent=(td/30+wps.length*.5).toFixed(1)+'h';
+  document.getElementById('rPat').textContent=wps.length*15;
+}
+function gz(x,y){return x<226?(y<165?'A':'D'):x<452?(y<165?'B':'E'):(y<165?'C':'F');}
+function rmWP(id){wps=wps.filter(w=>w.id!==id);renR();}
+
+/* ── UNITS ── */
+const UNITS=[
+  {id:'VA-01',name:'Clinic Van A',ico:'🚐',st:'active',zone:'Zone A',staff:6,pts:12,spec:'Full TCM'},
+  {id:'MB-02',name:'Mobile Unit B',ico:'🚑',st:'route',zone:'Zone B',staff:4,pts:0,spec:'Acupuncture'},
+  {id:'HC-03',name:'Herb Truck C',ico:'🌿',st:'active',zone:'Zone D',staff:2,pts:8,spec:'Herbal'},
+  {id:'VA-04',name:'Clinic Van D',ico:'🚐',st:'standby',zone:'Base',staff:6,pts:0,spec:'Full TCM'},
+  {id:'MB-05',name:'Mobile Unit E',ico:'🚑',st:'active',zone:'Zone C',staff:4,pts:9,spec:'Tui Na'},
+  {id:'HC-06',name:'Herb Truck F',ico:'🌿',st:'maint',zone:'Base',staff:0,pts:0,spec:'Herbal'},
+];
+const STL={active:'Active',route:'En Route',standby:'Standby',maint:'Maintenance'};
+const STW={active:'100%',route:'55%',standby:'20%',maint:'8%'};
+document.getElementById('uGrid').innerHTML=UNITS.map(u=>`
+<div class="uc">
+  <div class="uch">
+    <div class="uem">${u.ico}</div>
+    <div><div class="ut">${u.name}</div><div class="us2">${u.id} · ${u.spec}</div></div>
+    <div style="margin-left:auto"><span class="sc ${u.st}">${STL[u.st]}</span></div>
+  </div>
+  <div class="us3">
+    <div class="usb"><div class="usv">${u.staff}</div><div class="usl">STAFF</div></div>
+    <div class="usb"><div class="usv">${u.pts}</div><div class="usl">PATIENTS</div></div>
+    <div class="usb"><div class="usv" style="font-size:12px">${u.zone}</div><div class="usl">ZONE</div></div>
+  </div>
+  <div class="ubw"><div class="ub" style="width:${STW[u.st]}"></div></div>
+</div>`).join('');
+</script>
+</body>
+</html>
